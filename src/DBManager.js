@@ -1,6 +1,8 @@
 //"use strict";
 
 const obj = require("./../secrets.json")
+let firebase = require("firebase");
+
 
 // Initialize Firebase Application
 // TODO TODO TODO !!!! Change this on deploy
