@@ -1,4 +1,6 @@
 // CondutionEngine. V0.2.0
 
-module.exports = {};
+const dispatch = require("./src/dispatch");
+
+module.exports = {start: dispatch.init};
 
