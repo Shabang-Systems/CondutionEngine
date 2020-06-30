@@ -1,3 +1,5 @@
+let cRef = require("./DBManager").cRef;
+
 const util = {
     select: {
         compare: (lhs, cmp, rhs) => {
@@ -23,21 +25,28 @@ const util = {
             }
         },
         all: (...requirements) => (doc) => {
-            const dat = doc.data();
+            let dat = doc.data();
+            if (dat.defer) dat.defer = dat.defer.seconds;
+            if (dat.due) dat.due = dat.due.seconds;
             for (let [lhs, cmp, rhs] of requirements)
                 if (!util.select.compare(dat[lhs], cmp, rhs))
                     return false;
             return true;
         },
         any: (...requirements) => (doc) => {
-            const dat = doc.data();
+            let dat = doc.data();
+            if (dat.defer) dat.defer = dat.defer.seconds;
+            if (dat.due) dat.due = dat.due.seconds;
+
             for (let [lhs, cmp, rhs] of requirements)
                 if (util.select.compare(dat[lhs], cmp, rhs))
                     return true;
             return false;
         },
         atLeast: (threshold, ...requirements) => (doc) => {
-            const dat = doc.data();
+            let dat = doc.data();
+            if (dat.defer) dat.defer = dat.defer.seconds;
+            if (dat.due) dat.due = dat.due.seconds;
             let counter = 0;
             for (let [lhs, cmp, rhs] of requirements)
                 if (util.select.compare(dat[lhs], cmp, rhs)) {
@@ -48,7 +57,9 @@ const util = {
             return false;
         },
         atMost: (threshold, ...requirements) => (doc) => {
-            const dat = doc.data();
+            let dat = doc.data();
+            if (dat.defer) dat.defer = dat.defer.seconds;
+            if (dat.due) dat.due = dat.due.seconds;
             let counter = 0;
             for (let [lhs, cmp, rhs] of requirements)
                 if (util.select.compare(dat[lhs], cmp, rhs)) {
@@ -107,8 +118,8 @@ async function getInboxTasks(userID) {
     return inboxDocs.map(doc => doc.id);
 }
 
-async function getDSTasks(userID, available) {
-    let dsTime = new Date(); // TODO: merge with next line?
+async function getDSTasks(userID, available, wrt) {
+    let dsTime = wrt ? wrt : new Date(); // TODO: merge with next line?
     dsTime.setHours(dsTime.getHours() + 24);
     //let available = await getItemAvailability(userID);
     let dsDocs = await cRef("users", userID,
@@ -126,6 +137,42 @@ async function getDSTasks(userID, available) {
             .sort((a,b) => a.data().due.seconds - b.data().due.seconds)
     ).catch(console.error);
     return dsDocs.map(doc => doc.id);
+}
+
+async function dueTasks(userID, available, wrt) {
+    let dsTime = wrt ? wrt : new Date(); // TODO: merge with next line?
+    dsTime.setHours(23,59,59,999);
+    //let available = await getItemAvailability(userID);
+    let dsDocs = await cRef("users", userID,
+        "tasks")
+            //['due', '<=', dsTime],
+            //['isComplete', "==", false])
+        .get()
+        .then(snap => snap.docs
+            .filter(doc =>
+                (doc.data().due ? (doc.data().due.seconds <= (dsTime.getTime()/1000)) : false) && // has a due date and is ds
+                (doc.data().defer ? (doc.data().defer.seconds < ((new Date()).getTime())/1000) : true) && // has a defer and is not defered or has no defer date
+                (doc.data().isComplete === false) && // is not completed
+                (available[doc.id]) // aaaand is available
+            )
+            .sort((a,b) => a.data().due.seconds - b.data().due.seconds)
+    ).catch(console.error);
+    return dsDocs.map(doc => doc.id);
+}
+
+async function getDSRow(userID, avaliable) {
+    let ibt = await getInboxTasks(userID);
+    let d = new Date();
+    let dsTasks = [];
+    let prev = [];
+    for (let i=0; i<=7; i++) {
+        let content = (await dueTasks(userID, avaliable, d))
+        let cache = content;
+        dsTasks.push(content.filter(x => !prev.includes(x)));
+        prev = cache;
+        d.setDate(d.getDate() + 1)
+    }
+    return dsTasks.map(dst => dst.filter(x => ibt.indexOf(x) < 0));
 }
 
 async function getInboxandDS(userID, avalibility) {
@@ -208,8 +255,8 @@ async function getPerspectives(userID) {
     await cRef("users", userID, "perspectives").get()   // TODO: combine database hits
         .then(snap => snap.docs.forEach(pstp => {
             if (pstp.exists) {
-                pInfobyID[pstp.id] = {name: pstp.data().name, query: pstp.data().query};
-                pInfobyName[pstp.data().name] = {id: pstp.id, query: pstp.data().query};
+                pInfobyID[pstp.id] = {name: pstp.data().name, query: pstp.data().query, avail: pstp.data().avail, tord: pstp.data().tord};
+                pInfobyName[pstp.data().name] = {id: pstp.id, query: pstp.data().query, avail: pstp.data().avail, tord: pstp.data().tord};
                 ps.push({id: pstp.id, ...pstp.data()});
             }
         }))
@@ -247,6 +294,12 @@ async function newTask(userID, taskObj) {
     } else {
         let projL = (await getProjectStructure(userID, taskObj.project)).children.length;
         taskObj.order = projL;
+    }
+
+    // Perspectives cannot have empty defer dates
+    // But! We could set no defer to defer today.
+    if (!taskObj.defer) {
+        taskObj.defer = new Date();
     }
 
     return (await cRef("users", userID, "tasks").add(taskObj)).id;
@@ -386,7 +439,7 @@ async function getProjectStructure(userID, projectID, recursive=false) {
         }
     }
     children.sort((a,b) => a.sortOrder-b.sortOrder); //  sort by ascending order of order, TODO: we should prob use https://firebase.google.com/docs/reference/js/firebase.firestore.Query#order-by
-    return { id: projectID, children: children, is_sequential: project.data().is_sequential, sortOrder: project.data().order};
+    return { id: projectID, children: children, is_sequential: project.data().is_sequential, sortOrder: project.data().order, parentProj: project.data().parent};
 }
 
 async function getItemAvailability(userID) {
@@ -400,11 +453,13 @@ async function getItemAvailability(userID) {
         let projStruct = (await getProjectStructure(userID, projectID));
         if (project.data().is_sequential) {
             let child = projStruct.children[0];
-            if (child.type === "project") {
-                Object.assign(bstat, (await recursivelyGetBlocks(userID, child.content.id)));
-                bstat[child.content.id] = true;
-            } else if (child.type === "task") {
-                bstat[child.content] = true;
+            if (child) {
+                if (child.type === "project") {
+                    Object.assign(bstat, (await recursivelyGetBlocks(userID, child.content.id)));
+                    bstat[child.content.id] = true;
+                } else if (child.type === "task") {
+                    bstat[child.content] = true;
+                }
             }
         } else {
             let children = projStruct.children;
@@ -428,5 +483,5 @@ async function getItemAvailability(userID) {
     return blockstatus;
 }
 
-export {util, getTasks, getTasksWithQuery, getInboxTasks, getDSTasks, getInboxandDS, removeParamFromTask, getTopLevelProjects, getProjectsandTags, getPerspectives, modifyProject, modifyTask, modifyPerspective, newTask, newProject, newPerspective, newTag, newTask, completeTask, dissociateTask, associateTask, associateProject, dissociateProject, deleteTask, deletePerspective, deleteProject, getProjectStructure, getItemAvailability};
+module.exports = {util, getTasks, getTasksWithQuery, getInboxTasks, getDSTasks, getInboxandDS, removeParamFromTask, getTopLevelProjects, getProjectsandTags, getPerspectives, modifyProject, modifyTask, modifyPerspective, newProject, newPerspective, newTag, newTask, completeTask, dissociateTask, associateTask, associateProject, dissociateProject, deleteTask, deletePerspective, deleteProject, getProjectStructure, getItemAvailability, getTaskInformation, getDSRow, deleteTag};
 
