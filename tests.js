@@ -4,6 +4,6 @@ var E = require('./Engine.js');
 require("firebase/auth");
 require("firebase/firestore");
 
-E.start("firebase", firebase, "./secrets.json");
+E.start("firebase", firebase, require("./secrets.json"));
 
 

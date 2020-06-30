@@ -12,4 +12,5 @@ const init = function(type, source, ...args) {
     core.init(source, ...args);
 }
 
+module.exports = {init};
 
