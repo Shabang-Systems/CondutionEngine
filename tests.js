@@ -1,8 +1,9 @@
 var firebase = require("firebase/app");
-var E = require('./CondutionEngine.js');
+var E = require('./Engine.js');
 
 require("firebase/auth");
 require("firebase/firestore");
 
-E.db.getInboxandDS("TcZUcte5MFOx410Q8WJ6mRW1Pco1");
+E.start(firebase);
+
 
