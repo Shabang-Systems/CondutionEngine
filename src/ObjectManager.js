@@ -1,4 +1,4 @@
-let cRef = require("./DBManager").cRef;
+import {cRef} from "./DBManager.js";
 
 const util = {
     select: {
@@ -483,5 +483,4 @@ async function getItemAvailability(userID) {
     return blockstatus;
 }
 
-module.exports = {util, getTasks, getTasksWithQuery, getInboxTasks, getDSTasks, getInboxandDS, removeParamFromTask, getTopLevelProjects, getProjectsandTags, getPerspectives, modifyProject, modifyTask, modifyPerspective, newProject, newPerspective, newTag, newTask, completeTask, dissociateTask, associateTask, associateProject, dissociateProject, deleteTask, deletePerspective, deleteProject, getProjectStructure, getItemAvailability, getTaskInformation, getDSRow, deleteTag};
-
+export {util, getTasks, getTasksWithQuery, getInboxTasks, getDSTasks, getInboxandDS, removeParamFromTask, getTopLevelProjects, getProjectsandTags, getPerspectives, modifyProject, modifyTask, modifyPerspective, newProject, newPerspective, newTag, newTask, completeTask, dissociateTask, associateTask, associateProject, dissociateProject, deleteTask, deletePerspective, deleteProject, getProjectStructure, getItemAvailability, getTaskInformation, getDSRow, deleteTag};

@@ -1,7 +1,6 @@
-let dbFuncs = require("./src/ObjectManager");
-let pspObj = require("./src/PerspectiveManager");
-let dbRefObj = require("./src/DBManager");
+let dbFuncs = import("./src/ObjectManager.js");
+let pspObj = import("./src/PerspectiveManage.js");
+import {initFirebase} from "./src/DBManager.js";
 
 
-module.exports = {start:dbRefObj.__init__, db: dbFuncs, perspective: pspObj};
-
+export {initFirebase as start, dbFuncs as db, pspObj as perspective};

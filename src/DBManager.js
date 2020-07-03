@@ -110,5 +110,5 @@ const cRef = (() => {
     return cacheRef;
 })();
 
-module.exports = {__init__:initFirebase, cRef};
+export {initFirebase, cRef};
 
