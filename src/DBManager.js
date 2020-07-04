@@ -10,8 +10,8 @@ const initFirebase = (fbPointer) => {
     // must be listed before other Firebase SDKs
     // const firebase = require("firebase/app");
 
-    const obj = require("./../secrets.json")
-    fbPointer.initializeApp(obj.dbkeys.debug);
+    //const obj = require("./../secrets.json")
+    fbPointer.initializeApp(secrets.dbkeys.debug);
     [ firebaseDB, fsRef ] = [fbPointer.firestore(), fbPointer.firestore];
 }
 
