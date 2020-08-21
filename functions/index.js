@@ -69,6 +69,7 @@ exports.addTask = functions.https.onRequest(async (req, res) => {
     };
     E.db.newTask(uid, ntObject).then(function(ntid) {
       res.json({result: "success", uid, payload: {taskId:ntid, taskObject: ntObject}})
+       return;
     }).catch(function(error) {
       console.log(error);
       //res.json({result: "error", message: "There was an error writing your file", error: error});
