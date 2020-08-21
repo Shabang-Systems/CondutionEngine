@@ -14,7 +14,7 @@ const admin = require('firebase-admin');
 admin.initializeApp();
 admin.firestore().settings({timestampsInSnapshots: true});
 
-const E = require('../CondutionEngine');
+const E = require('./Engine/CondutionEngine');
 
 E.start({admin}, "fb-admin");
 E.use("fb-admin");
