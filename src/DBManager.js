@@ -20,11 +20,20 @@ const initStorage = (payload, ...features) => {
 
     let loaders = [];
 
+    console.assert(features.includes("firebase") !== features.includes("fb-admin"), "Cannot initalize both firebase admin and firebase client");
+
     if (features.includes("firebase")) {
         const obj = require("./../secrets.json");
         payload.firebase.initializeApp(obj.dbkeys.debug);
         [ firebaseDB, fsRef ] = [payload.firebase.firestore(), payload.firebase.firestore];
         firebaseDB.enablePersistence({synchronizeTabs: true}).catch(console.error);
+        loaders.push(new Promise(function(resolve) {
+            return resolve(fsRef);
+        }));
+    } 
+
+    if (features.includes("fb-admin")) {
+        [ firebaseDB, fsRef ] = [payload.admin.firestore(), payload.admin.firestore];
         loaders.push(new Promise(function(resolve) {
             return resolve(fsRef);
         }));
@@ -180,14 +189,17 @@ const [cRef, flush] = (() => {
             // TODO: comment this out someday \/
             const ref = getFirebaseRef(path);           //  get the reference from the database
             cache.set(TODOstring, ref.get());           //  save result in cache
-            unsubscribeCallbacks.set(TODOstring,        //  TODO: comment this code, someday
-                ref.onSnapshot({
-                    error: console.trace,
-                    next: (snap) => {
-                        cache.set(TODOstring, snap);
-                    }
-                })
-            );
+            if (storageType === "firebase") {
+                // stoType fb-admin does not have callbacks.
+                unsubscribeCallbacks.set(TODOstring,        //  TODO: comment this code, someday
+                    ref.onSnapshot({
+                        error: console.trace,
+                        next: (snap) => {
+                            cache.set(TODOstring, snap);
+                        }
+                    })
+                );
+            }
         }
         return await cache.get(TODOstring);
     }
@@ -479,6 +491,7 @@ const [cRef, flush] = (() => {
 
         switch (storageType) {
             case "firebase":
+            case "fb-admin":
                 return cacheRef(path);
             default:
                 return storageRef(path);
