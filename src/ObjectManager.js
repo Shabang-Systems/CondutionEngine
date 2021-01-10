@@ -752,13 +752,13 @@ async function getCompletedItems(userID) {
     let completedProjects = await getProjectsWithQuery(userID, util.select.all(["isComplete", "==", true]));
     let completedTasks = await getTasksWithQuery(userID, util.select.all(["isComplete", "==", true]));
     let items = {}
-    await Promise.all(completedTasks.map(async function(tsk){
+    await Promise.all(completedTasks.map(async function(tsk, i){
         items[tsk] = await getTaskInformation(userID, tsk);
-	return [tsk, "task"]
+	completedTasks[i] = [tsk, "task"]
     }));
-    await Promise.all(completedProjects.map(async function(prj){
+    await Promise.all(completedProjects.map(async function(prj, i){
         items[prj] = await getProjectStructure(userID, prj);
-	return [prj, "project"]
+	completedProjects[i] = [prj, "project"]
     }));
 
     let completedItems = [...completedTasks, ...completedProjects]
