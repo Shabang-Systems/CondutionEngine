@@ -160,7 +160,7 @@ async function getTasks(userID) {
         console.error('Error getting documents', err);
     });
 }
-
+// TODO TODO TODO: make this one func on backend refactor
 async function getTasksWithQuery(userID, query) {
     let taskDocs = await cRef(isWorkspace?"workspaces":"users", userID, "tasks")
         .get()
@@ -172,15 +172,26 @@ async function getTasksWithQuery(userID, query) {
     return taskDocs.map(doc => doc.id);
 }
 
-async function getProjectWithQuery(userID, query) {
+async function getProjectsWithQuery(userID, query) {
     let projectDocs = await cRef(isWorkspace?"workspaces":"users", userID, "projects")
         .get()
-        .then(snap => snap.docs
-            .filter(query)
-        ).catch(err => {
-            console.error('Error getting documents', err);
-        });
+        //.then(snap => snap.docs.forEach(proj => {
+        //    if (proj.exists) {
+	//        projectNameById[proj.id] = proj.data().name;
+	//        projectIdByName[proj.data().name] = proj.id;
+	//        console.log(proj.id)
+        //    }
+        //}))
+        //.catch(console.error);
+
+	.then(snap => snap.docs
+	    .filter(query)
+	).catch(err => {
+	    console.error('Error getting documents', err);
+	});
+    //console.log("projdocs", projectDocs)
     return projectDocs.map(doc => doc.id);
+    //return 0
 }
 
 async function getInboxTasks(userID) {
@@ -734,15 +745,18 @@ async function getItemAvailability(userID) {
     return blockstatus;
 }
 
-async function getCompletedItems() {
-
-
+async function getCompletedItems(userID) {
+    let completedItems = await getProjectsWithQuery(userID, util.select.all(["isComplete", "==", true]));
+    console.log(completedItems)
+    //let snap = await cRef(isWorkspace?"workspaces":'users', userID, "projects").get()
+    //console.log(snap)
 }
 
 async function getCompletedProjects(userId) {
 
 }
 
+// TODO TODO TODO: make this one func on backend refactor
 async function getCompletedTasks(userID) {
     let completedTasks = await getTasksWithQuery(userID, util.select.all(["isComplete", "==", true]));
     let taskItems = {};
@@ -1038,7 +1052,7 @@ async function onBoard(userID, tz, username, payload) {
     await associateTask(userID, yiipee, promotion);
 }
 
-export default {util, getTasks, getTasksWithQuery, getInboxTasks, getDSTasks, getInboxandDS, removeParamFromTask, getTopLevelProjects, getProjectsandTags, getPerspectives, modifyProject, modifyTask, modifyPerspective, newProject, newPerspective, newTag, newTask, completeTask, dissociateTask, associateTask, associateProject, dissociateProject, deleteTask, deletePerspective, deleteProject, selectTasksInRange, getProjectStructure, getItemAvailability, getTaskInformation, getDSRow, deleteTag, getCompletedTasks, onBoard, getTags, generateWorkspace, getWorkspace, getWorkspaces, editWorkspace, inviteToWorkspace, revokeToWorkspace, getInvitations, resolveInvitation, updateWorkspaces, delegateTaskToUser, revokeTaskToUser, getDelegations, resolveDelegation, getWorkspaceMode, setTag, newChainedTask, deleteChainedTask, getChainedTasks, getTaskWeight};
+export default {getCompletedItems, util, getTasks, getTasksWithQuery, getInboxTasks, getDSTasks, getInboxandDS, removeParamFromTask, getTopLevelProjects, getProjectsandTags, getPerspectives, modifyProject, modifyTask, modifyPerspective, newProject, newPerspective, newTag, newTask, completeTask, dissociateTask, associateTask, associateProject, dissociateProject, deleteTask, deletePerspective, deleteProject, selectTasksInRange, getProjectStructure, getItemAvailability, getTaskInformation, getDSRow, deleteTag, getCompletedTasks, onBoard, getTags, generateWorkspace, getWorkspace, getWorkspaces, editWorkspace, inviteToWorkspace, revokeToWorkspace, getInvitations, resolveInvitation, updateWorkspaces, delegateTaskToUser, revokeTaskToUser, getDelegations, resolveDelegation, getWorkspaceMode, setTag, newChainedTask, deleteChainedTask, getChainedTasks, getTaskWeight};
 
 export { setWorkspaceMode };
 
