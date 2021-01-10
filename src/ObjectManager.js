@@ -754,12 +754,15 @@ async function getCompletedItems(userID) {
     let items = {}
     await Promise.all(completedTasks.map(async function(tsk){
         items[tsk] = await getTaskInformation(userID, tsk);
+	return [tsk, "task"]
     }));
     await Promise.all(completedProjects.map(async function(prj){
         items[prj] = await getProjectStructure(userID, prj);
+	return [prj, "project"]
     }));
 
     let completedItems = [...completedTasks, ...completedProjects]
+    console.log(completedTasks)
 
     const cpSorted = completedItems.sort(function(b,a) {
         let taskA = items[a];
