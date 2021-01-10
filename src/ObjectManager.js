@@ -765,8 +765,8 @@ async function getCompletedItems(userID) {
     console.log(completedTasks)
 
     const cpSorted = completedItems.sort(function(b,a) {
-        let taskA = items[a];
-        let taskB = items[b];
+        let taskA = items[a[0]];
+        let taskB = items[b[0]];
         if (!taskA || !taskB) {
             return 1;
         }
@@ -792,23 +792,23 @@ async function getCompletedItems(userID) {
     thisMonth.setMonth(thisMonth.getMonth()-1);
     thisMonth.setHours(0,0,0,0);
     let tasksToday = cpSorted.filter(function (a) {
-        let tsks = items[a];
+        let tsks = items[a[0]];
         return tsks.completeDate ? new Date(tsks.completeDate.seconds * 1000) >= today : false;
     });
     let tasksYesterday = cpSorted.filter(function (a) {
-        let tsks = items[a];
+        let tsks = items[a[0]];
         return tsks.completeDate ? new Date(tsks.completeDate.seconds * 1000) >= yesterday && new Date(tsks.completeDate.seconds * 1000) < today : false;
     });
     let tasksWeek = cpSorted.filter(function (a) {
-        let tsks = items[a];
+        let tsks = items[a[0]];
         return tsks.completeDate ? new Date(tsks.completeDate.seconds * 1000) >= thisWeek && new Date(tsks.completeDate.seconds * 1000) < yesterday : false;
     });
     let tasksMonth = cpSorted.filter(function (a) {
-        let tsks = items[a];
+        let tsks = items[a[0]];
         return tsks.completeDate ? new Date(tsks.completeDate.seconds * 1000) >= thisMonth && new Date(tsks.completeDate.seconds * 1000) < thisWeek : false;
     });
     let evenBefore = cpSorted.filter(function (a) {
-        let tsks = items[a];
+        let tsks = items[a[0]];
         return tsks.completeDate ? new Date(tsks.completeDate.seconds * 1000) < thisMonth : true;
     });
     //console.log(tasksYesterday);
@@ -821,10 +821,6 @@ async function getCompletedItems(userID) {
     //console.log(completedItems)
     //let snap = await cRef(isWorkspace?"workspaces":'users', userID, "projects").get()
     //console.log(snap)
-}
-
-async function getCompletedProjects(userId) {
-
 }
 
 // TODO TODO TODO: make this one func on backend refactor
