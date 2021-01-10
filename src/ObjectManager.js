@@ -746,8 +746,12 @@ async function getItemAvailability(userID) {
 }
 
 async function getCompletedItems(userID) {
-    let completedItems = await getProjectsWithQuery(userID, util.select.all(["isComplete", "==", true]));
-    console.log(completedItems)
+    let completedProjects = await getProjectsWithQuery(userID, util.select.all(["isComplete", "==", true]));
+    let completedTasks = await getTasksWithQuery(userID, util.select.all(["isComplete", "==", true]));
+    let items = {}
+
+
+    //console.log(completedItems)
     //let snap = await cRef(isWorkspace?"workspaces":'users', userID, "projects").get()
     //console.log(snap)
 }
