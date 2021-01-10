@@ -104,7 +104,7 @@ async function getWorkspaces(userID) {
     let userData = (await cRef("users", userID).get()).data()
     if (userData)
         return userData["workspaces"]?userData["workspaces"]:[];
-    else 
+    else
         return [];
 }
 
@@ -170,6 +170,17 @@ async function getTasksWithQuery(userID, query) {
             console.error('Error getting documents', err);
         });
     return taskDocs.map(doc => doc.id);
+}
+
+async function getProjectWithQuery(userID, query) {
+    let projectDocs = await cRef(isWorkspace?"workspaces":"users", userID, "projects")
+        .get()
+        .then(snap => snap.docs
+            .filter(query)
+        ).catch(err => {
+            console.error('Error getting documents', err);
+        });
+    return projectDocs.map(doc => doc.id);
 }
 
 async function getInboxTasks(userID) {
@@ -243,7 +254,7 @@ async function selectTasksInRange(userID, min=(new Date(1900, 1, 1)), max=(new D
                             (doc.data().due ?
                                 (doc.data().defer ?
                                     (new Date(doc.data().due.seconds*1000)) <= max && (new Date(doc.data().due.seconds*1000)) >= min && (new Date() >= (new Date(doc.data().defer.seconds*1000)))
-                                : false) 
+                                : false)
                                 : false)
                         )
                         .filter(doc => !doc.data().isComplete)
@@ -307,7 +318,7 @@ async function removeParamFromTask(userID, taskID, paramName) {
 async function getTopLevelProjects(userID) {
     let projectIdByName = {};
     let projectNameById = {};
-    let projectsSorted = []; 
+    let projectsSorted = [];
 
     let snap = (await cRef(isWorkspace?"workspaces":'users', userID, "projects")
         .get());
@@ -396,6 +407,9 @@ async function modifyProject(userID, projectID, updateQuery) {
     await cRef(isWorkspace?"workspaces":"users", userID, "projects", projectID)
         .update(updateQuery)
         .catch(console.error);
+
+	// options.uid, options.id, {isComplete: !this.state.isComplete
+
 }
 
 async function modifyTask(userID, taskID, updateQuery, overrideIsWorkspace=false) {
@@ -501,6 +515,7 @@ async function newProject(userID, projObj, parentProj) {
     }
     projObj.order = projL;
     projObj.children = {};
+    projObj.isComplete = false;
 
     let pid = (await cRef(isWorkspace?"workspaces":"users", userID, "projects").add(projObj)).id;
     return pid;
@@ -579,7 +594,7 @@ async function deleteProject(userID, projectID) {
         if (i.type === "project") deleteProject(userID, i.content.id)
         else modifyTask(userID, i.content, {project:""});
     }
-   
+
     let cpLtTasks = await getCompletedTasks(userID);
     const cpLt = [].concat(...cpLtTasks);
     for (let t of cpLt)
@@ -604,9 +619,9 @@ async function deleteTag(userID, tagID) {
 
 async function getProjectStructure(userID, projectID, recursive=false, includeWeights=false) {
 
-    ////////// TODO TODO TODO TODO AAAAAAAAAAAAAAAAAAAAAAAA!AAAAAAAAAAAAAAAAAAAAAAAA!AAAAAAAAAAAAAAAAAAAAAAAA! TODO TODO TODO TODO ////////// 
+    ////////// TODO TODO TODO TODO AAAAAAAAAAAAAAAAAAAAAAAA!AAAAAAAAAAAAAAAAAAAAAAAA!AAAAAAAAAAAAAAAAAAAAAAAA! TODO TODO TODO TODO //////////
     // What is this code?
-    
+
     console.assert((includeWeights == false || includeWeights == recursive), "IncludeWeights could only occur when recursive");
     let children = [];
     let weights = 0;
@@ -623,7 +638,7 @@ async function getProjectStructure(userID, projectID, recursive=false, includeWe
         if (type === "task") {  // TODO: combine if statements
             let task = await getTaskInformation(userID, itemID);
             let taskWeight = 0;
-            if (task && includeWeights) 
+            if (task && includeWeights)
                  taskWeight = await getTaskWeight(userID, itemID);
             if(task){
                 if (!task.isComplete) {
@@ -632,26 +647,51 @@ async function getProjectStructure(userID, projectID, recursive=false, includeWe
                 }
                 weights += taskWeight;
             }
-           
+
         } else if (type === "project") {
             if (recursive) {
                 let project = await getProjectStructure(userID, itemID, true, includeWeights);
                 if(project && includeWeights) {
-                    children.push({type: "project", content: project, is_sequential: project.is_sequential, sortOrder: project.sortOrder, weight:project.weight}); 
+                    children.push({type: "project", content: project, is_sequential: project.is_sequential, sortOrder: project.sortOrder, weight:project.weight});
                     weights += project.weight;
                     uncompletedWeights += project.pendingWeight;
                 }
                 else if (project)
-                    children.push({type: "project", content: project, is_sequential: project.is_sequential, sortOrder: project.sortOrder}); 
+                    children.push({type: "project", content: project, is_sequential: project.is_sequential, sortOrder: project.sortOrder});
             } else {
                 let project =  (await cRef(isWorkspace?"workspaces":"users", userID, "projects").get().then(snap => snap.docs)).filter(doc=>doc.id === itemID)[0];
-                if(project) children.push({type: "project", content: {id: itemID}, is_sequential: project.data().is_sequential, sortOrder: project.data().order}); 
+                if(project) children.push({type: "project", content: {id: itemID}, is_sequential: project.data().is_sequential, sortOrder: project.data().order});
             }
         }
     }
     children.sort((a,b) => a.sortOrder-b.sortOrder); //  sort by ascending order of order, TODO: we should prob use https://firebase.google.com/docs/reference/js/firebase.firestore.Query#order-by
-    return includeWeights ? { id: projectID, children: children, is_sequential: project.data().is_sequential, sortOrder: project.data().order, parentProj: project.data().parent, weight:weights, pendingWeight:uncompletedWeights} : { id: projectID, children: children, is_sequential: project.data().is_sequential, sortOrder: project.data().order, parentProj: project.data().parent};
+//    return includeWeights ? { completeDate: project.data().completeDate, isComplete: project.data().isComplete, id: projectID, children: children, is_sequential: project.data().is_sequential, sortOrder: project.data().order, parentProj: project.data().parent, weight:weights, pendingWeight:uncompletedWeights} : { completeDate: project.data().completeDate,  isComplete: project.data().isComplete, id: projectID, children: children, is_sequential: project.data().is_sequential, sortOrder: project.data().order, parentProj: project.data().parent};
+//}
+
+
+
+    return includeWeights ? {
+	completeDate: project.data().completeDate,
+	isComplete: project.data().isComplete,
+	id: projectID,
+	children: children,
+	is_sequential: project.data().is_sequential,
+	sortOrder: project.data().order,
+	parentProj: project.data().parent,
+	weight: weights,
+	pendingWeight: uncompletedWeights
+    } : {
+	completeDate: project.data().completeDate,
+	isComplete: project.data().isComplete,
+	id: projectID,
+	children: children,
+	is_sequential: project.data().is_sequential,
+	sortOrder: project.data().order,
+	parentProj: project.data().parent
+    };
 }
+
+
 
 async function getItemAvailability(userID) {
     let t = new Date();
@@ -692,6 +732,15 @@ async function getItemAvailability(userID) {
     }));
     await (await getInboxTasks(userID)).forEach((id) => blockstatus[id] = true);
     return blockstatus;
+}
+
+async function getCompletedItems() {
+
+
+}
+
+async function getCompletedProjects(userId) {
+
 }
 
 async function getCompletedTasks(userID) {
