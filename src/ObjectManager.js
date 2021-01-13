@@ -335,7 +335,7 @@ async function getTopLevelProjects(userID) {
         .get());
 
     snap.docs.forEach(proj => {
-        if (proj.exists && proj.data().top_level === true) {
+        if (proj.exists && proj.data().top_level === true && proj.data().isComplete != true) {
             projectNameById[proj.id] = proj.data().name;
             projectIdByName[proj.data().name] = proj.id;
             let projElem = {};
@@ -762,7 +762,6 @@ async function getCompletedItems(userID) {
     }));
 
     let completedItems = [...completedTasks, ...completedProjects]
-    console.log(completedTasks)
 
     const cpSorted = completedItems.sort(function(b,a) {
         let taskA = items[a[0]];
