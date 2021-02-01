@@ -603,17 +603,17 @@ async function deletePerspective(userID, perspectiveID) {
 }
 
 async function deleteProject(userID, projectID) {
-    let struct = await getProjectStructure(userID, projectID)
-    for (let i of struct.children) {
-        if (i.type === "project") deleteProject(userID, i.content.id)
-        else modifyTask(userID, i.content, {project:""});
-    }
+//    let struct = await getProjectStructure(userID, projectID)
+    //for (let i of struct.children) {
+        //if (i.type === "project") deleteProject(userID, i.content.id)
+        //else modifyTask(userID, i.content, {project:""});
+    //}
 
-    let cpLtTasks = await getCompletedTasks(userID);
-    const cpLt = [].concat(...cpLtTasks);
-    for (let t of cpLt)
-        if ((await getTaskInformation(userID, t)).project === projectID)
-            modifyTask(userID, t, {project:""});
+    //let cpLtTasks = await getCompletedTasks(userID);
+    //const cpLt = [].concat(...cpLtTasks);
+    //for (let t of cpLt)
+        //if ((await getTaskInformation(userID, t)).project === projectID)
+            //modifyTask(userID, t, {project:""});
 
     await cRef(isWorkspace?"workspaces":"users", userID, "projects", projectID).delete()
         .catch(console.error);
