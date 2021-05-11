@@ -453,22 +453,28 @@ class FirebaseProvider extends Provider {
         // Get our shared secrets file
         const obj = require("./../../../secrets.json");
 
-        // Initialize the correct version of the database
-        if (process.env.NODE_ENV === "development")
-            firebase.initializeApp(obj.dbkeys.debug);
-        else if (process.env.NODE_ENV === "production")
-            firebase.initializeApp(obj.dbkeys.deploy);
-        else
-            firebase.initializeApp(obj.dbkeys.debug);
+        // Get firestore references
+        if (firebase.apps.length === 0) {
+            // Initialize the correct version of the database
+            if (process.env.NODE_ENV === "development")
+                firebase.initializeApp(obj.dbkeys.debug);
+            else if (process.env.NODE_ENV === "production")
+                firebase.initializeApp(obj.dbkeys.deploy);
+            else
+                firebase.initializeApp(obj.dbkeys.debug);
+
+            [ this.firebaseDB, this.firebaseRef ] = [firebase.firestore(), firebase.firestore];
+
+            // Enable Persistance
+            this.firebaseDB.enablePersistence({synchronizeTabs: true}).catch((e)=>console.log(`CondutionEngine (FirebaseProvider): persistance enabling failed due to code "${e.code}"`));
+        } else {
+            [ this.firebaseDB, this.firebaseRef ] = [firebase.firestore(), firebase.firestore];
+        }
 
         // Initialize and add the provider
         this.authProvider = new FirebaseAuthenticationProvider();
 
-        // Get firestore references
-        [ this.firebaseDB, this.firebaseRef ] = [firebase.firestore(), firebase.firestore];
 
-        // Enable Persistance
-        this.firebaseDB.enablePersistence({synchronizeTabs: true}).catch((e)=>console.log(`CondutionEngine (FirebaseProvider): persistance enabling failed due to code "${e.code}"`));
     }
 
     /**
