@@ -18,8 +18,8 @@ class SupabaseCollection extends Collection {
     path: string[];
     supabaseDB: ReturnType<typeof createClient>;
 
-    private table;
-    private owner;
+    private table: string;
+    private owner: string;
 
     constructor(path:string[], supabaseDB:ReturnType<typeof createClient>, refreshCallback:Function=()=>{}) {
         super();
@@ -59,11 +59,17 @@ class SupabaseCollection extends Collection {
     }
 
     async pages() : Promise<Page[]> {
-        return []; //TODO
+        let { data , error } = await this.supabaseDB.from(this.table)
+            .select("*").eq('owner', this.owner)
+
+        return data.map((i:object) => new SupabasePage([...this.path, i["id"]], this.supabaseDB));
     }
 
     async data() : Promise<object[]> {
-        return []; // TODO
+        let { data , error } = await this.supabaseDB.from(this.table)
+            .select("*").eq('owner', this.owner)
+
+        return data.map((i:object) => Object.assign(i["payload"], {id: i["id"]}));
     }
 }
 
@@ -79,6 +85,8 @@ class SupabasePage extends Page {
 
     constructor(path:string[], supabaseDB:ReturnType<typeof createClient>, refreshCallback:Function=()=>{}) {
         super();
+
+        this.path = path;
 
         console.assert(path.length % 2 == 0, `Paths to pages should either be length 2 or 4, got ${path}.`)
         if (path.length == 2) {
@@ -157,16 +165,22 @@ class SupabasePage extends Page {
         this.supabaseDB
             .from(`${this.table}:id=${this._id}`)
             .on('*', payload => {
-                refreshCallback(payload);
+                refreshCallback(payload[0]);
+                this.data = (async ():Promise<object> => {
+                    if (payload[0])
+                        return Object.assign(payload[0]["payload"], {id: payload[0]["id"]});
+                })();
             })
             .subscribe()
 
-        return data;
+        return Object.assign(data[0]["payload"], {id: data[0]["id"]});
     }
 
     async exists(): Promise<boolean> {
-        // TODO;
-        return false;
+        let { data , error } = await this.supabaseDB.from(this.table)
+            .select("*").eq('id', this._id)
+
+        return data.length > 0;
     }
 
     get id(): string {
