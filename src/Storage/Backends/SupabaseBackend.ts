@@ -26,8 +26,12 @@ class SupabaseCollection extends Collection {
         this.path = path;
         this.supabaseDB = supabaseDB;
 
-        this.table = ((path[0] === "workspaces") ? "w" : "") + path[2];
-        this.owner = path[1];
+        if (path.length === 1) {
+            this.table = path[0];
+        } else {
+            this.table = ((path[0] === "workspaces") ? "w" : "") + path[2];
+            this.owner = path[1];
+        }
 
         this.supabaseDB
             .from(`${this.table}:owner=${this.owner}`)
@@ -39,13 +43,29 @@ class SupabaseCollection extends Collection {
 
     async add(payload:object) {
         let id = uuidv4();
-        const { data, error } = await this.supabaseDB
-            .from(`${this.table}`)
-            .insert([{
-                id: id,
-                owner: this.owner,
-                payload: payload
-            }]);
+        let data:object, error:object;
+
+        if (this.owner) {
+            let res:object = await this.supabaseDB
+                .from(`${this.table}`)
+                .insert([{
+                    id: id,
+                    owner: this.owner,
+                    payload: payload
+                }]);
+            data = res["data"];
+            error = res["error"];
+        } else {
+            let res:object = await this.supabaseDB
+                .from(`${this.table}`)
+                .insert([{
+                    id: id,
+                    payload: payload
+                }]);
+            data = res["data"];
+            error = res["error"];
+        }
+
         return {identifier: id, payload: data, response: error};
     }
 
