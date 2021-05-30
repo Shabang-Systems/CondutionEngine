@@ -208,9 +208,148 @@ class SupabasePage extends Page {
     }
 }
 
+class SupabaseAuthenticationProvider extends AuthenticationProvider {
+    private supabasePointer: ReturnType<typeof createClient>;
+    _authenticated:boolean;
+
+    constructor(supabaseDB:ReturnType<typeof createClient>) {
+        super();
+        this.supabasePointer = supabaseDB;
+
+        if (this.supabasePointer.auth.user())
+            this._authenticated = true;
+        else
+            this._authenticated = false;
+    }
+
+    async refreshAuthentication() {
+        if (this.supabasePointer.auth.user())
+            this._authenticated = true;
+        else
+            this._authenticated = false;
+    }
+
+    get currentUser() : Promise<AuthenticationUser> {
+        let user = this.supabasePointer.auth.user()
+        return new Promise((res, _) => {
+            if (user)
+                res({
+                    identifier: user.id,
+                    displayName: user.app_metadata["display_name"],
+                    email: user.email,
+                    emailVerified: true // for now
+                })
+            else res(null);
+        });
+    }
+
+    async authenticate(request: AuthenticationRequest) : Promise<AuthenticationResult> {
+        if (request.requestType == "email_pass" || !request.requestType) {
+            let e_code:string;
+            let e_msg:string;
+
+            let { user, error } = await this.supabasePointer.auth.signIn({
+                email: request.payload["email"],
+                password: request.payload["password"],
+            });
+
+            e_code = error.name;
+            e_msg = error.message;
+
+            if (e_code) {
+                return {
+                    actionDesired: "authenticate", 
+                    actionSuccess: false, 
+                    identifier: null, 
+                    payload: {msg: e_msg, code: e_code}
+                }
+            } else {
+                return {
+                    actionDesired: "authenticate", 
+                    actionSuccess: true, 
+                    identifier: user.id, 
+                    payload: null
+                }
+            }
+        }
+        else 
+            return {
+                actionDesired: "authenticate", 
+                actionSuccess: false, 
+                identifier: null, 
+                payload: {msg: "Unknown request type", code: "unknown_request_type"}
+            };
+    }
+
+    async deauthenticate() {
+        this.supabasePointer.auth.signOut();
+        this._authenticated = false;
+    }
+
+    async createUser(request: AuthenticationRequest) : Promise<AuthenticationResult> {
+        let { user, error } = await this.supabasePointer.auth.signUp({
+            email: request.payload["email"],
+            password: request.payload["password"]
+        });
+
+        if (!error) {
+            this.supabasePointer.auth.update({
+              data: { display_name: request.payload["displayName"] }
+            })
+
+            this._authenticated = true;
+            return {
+                actionDesired: "createUser", 
+                actionSuccess: true, 
+                identifier: user.id, 
+                payload: null
+            }
+        } else {
+            return {
+                actionDesired: "createUser", 
+                actionSuccess: true, 
+                identifier: user.id, 
+                payload: {msg:error.message, code:error.name}
+            }
+
+        }
+    }
+
+    async updateUserProfile(request: AuthenticationRequest) : Promise<AuthenticationResult> {
+        if (!this._authenticated) 
+            return {
+                actionDesired: "updateUserProfile", 
+                actionSuccess: false, 
+                identifier: null, 
+                payload: {msg: "Cannot update a non-existent user", code: "user_missing"}
+            };
+        try {
+            this.supabasePointer.auth.update({
+                data: request.payload
+            })
+
+            return {
+                actionDesired: "updateUserProfile", 
+                actionSuccess: true, 
+                identifier: this.supabasePointer.auth.user().id, 
+                payload: null
+            }
+        } catch (err) {
+            return {
+                actionDesired: "updateUserProfile", 
+                actionSuccess: false, 
+                identifier: null, 
+                payload: err
+            };
+        }
+    }
+}
+
 class SupabaseProvider extends Provider {
     name: string;
     supabaseDB: ReturnType<typeof createClient>;
+
+    private authProvider: AuthenticationProvider;
 
     constructor(rootURL=OFFICIAL_URL, key=OFFICIAL_PUBKEY, name:string="supabase") {
         super();
@@ -220,12 +359,11 @@ class SupabaseProvider extends Provider {
         // Yes, we support auth
         this._authSupported = true;
 
-        // Initialize and add the auth provider
-        //this.authProvider = new FirebaseAuthenticationProvider();
-        //TODO
-
         // Get supabase reference
         this.supabaseDB = createClient(rootURL, key);
+
+        // Initialize and add the auth provider
+        this.authProvider = new SupabaseAuthenticationProvider(this.supabaseDB);
     }
     
     /**
@@ -258,6 +396,18 @@ class SupabaseProvider extends Provider {
         return new SupabaseCollection(path, this.supabaseDB, refreshCallback);
     }
 
+    /**
+     * The Authentication Providerj
+     * @property
+     *
+     * Return the AuthenticationProvider instance bundled with the Provider, 
+     * if that is supposed to be a thing
+     *
+     */
+
+    get authenticationProvider() {
+        return this.authProvider;
+    }
    
     /**
      * Nuke the cache
