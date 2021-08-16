@@ -822,10 +822,10 @@ async function BootstrapCondution(context:Context, username:string, payload:stri
 async function ParseABTIBIntention(context:Context, intention:string) {
     const ABTIB_PROJECT_PATTERN = /for (.+)$/;
 
-    console.log(intention)
     let dateInfo = chrono.parse(intention, undefined, { forwardDate: true });   // some issues here: https://github.com/wanasit/chrono/issues/402
     let due = undefined;
     let defer = undefined;
+    intention = intention.trim();
     if (dateInfo.length > 0) {
         // we got a date!
         if (dateInfo[0].end) {
@@ -846,14 +846,14 @@ async function ParseABTIBIntention(context:Context, intention:string) {
     // see if the intention has a project specifier
     const project = await (async () => {
         const proj_matches = intention.trim().match(ABTIB_PROJECT_PATTERN);
-        if (proj_matches === null) return undefined;
-        const name = proj_matches[1];
-        const projs = await (new Query(context)).execute(
+        if (proj_matches === null) return undefined;        // do nothing if theres no intention to add to project
+        const name = proj_matches[1];                       // the first capture group
+        const projs = await (new Query(context)).execute(   // all non-completed projects
             Project,
             (proj: Project) => !proj.isComplete,
         ) as Project[];
-        const matches = projs.filter(p => p.name === name);
-        if (matches.length === 1) {
+        const matches = projs.filter(p => p.name === name); // get all projects that they could be thinking of
+        if (matches.length === 1) {                         // only add it if theres exactly one
             intention = intention.replace(ABTIB_PROJECT_PATTERN, '').trim();
             return matches[0];
         }
