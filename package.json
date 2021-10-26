@@ -19,7 +19,9 @@
   "prepublish": "tsc && babel  --extensions \".ts\" --extensions \".js\" src --out-dir dist",
   "dependencies": {
     "@babel/runtime": "^7.13.9",
-    "firebase": "^8.5.0"
+    "chrono-node": "^2.3.2",
+    "firebase": "^8.5.0",
+    "rethinkdb": "^2.4.2"
   },
   "devDependencies": {
     "@babel/cli": "^7.0.0-rc.1",
