@@ -65,7 +65,7 @@ class ReThinkPage extends Page {
 	    // r.
 	    let query = {};
 	    query[this.primarykey][this.pageid] = data;
-	    r.db(this.db).table(this.userid).update(query).run(connection, (err, result) => {
+	    r.db(this.db).table(this.userid).update(query).run(this.working_connection, (err, result) => {
 		res(result);
 	    });
 	});
@@ -84,7 +84,7 @@ class ReThinkPage extends Page {
 	    // r.
 	    let query = {};
 	    query[this.primarykey][this.pageid] = data;
-	    r.db(this.db).table(this.userid).update(query).run(connection, (err, result) => {
+	    r.db(this.db).table(this.userid).update(query).run(this.working_connection, (err, result) => {
 		res(result);
 	    });
 	});
@@ -96,7 +96,7 @@ class ReThinkPage extends Page {
 	let res = new Promise((res, _) => {
 	    r.db(this.db)
 		.table(this.userid).get(this.pageid)
-		.delete().run(connection, (err, result) => {
+		.delete().run(this.working_connection, (err, result) => {
 		res(result);
 	    });
 	});
@@ -114,7 +114,7 @@ class ReThinkPage extends Page {
     }
 
     async get() : Promise<object> {
-	return await self.data;
+	return await this.data;
     }
 }
 
