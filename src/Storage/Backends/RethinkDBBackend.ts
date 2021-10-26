@@ -1,13 +1,14 @@
 import { Provider, Page, Collection } from "./Backend";
 import type { DataExchangeResult } from "./Backend"
+import { resolvePlugin } from "@babel/core";
 
 
 let r = require('rethinkdb')
 let callbacks:Function[] = [];
-
+/*
 class RethinkCollection extends Collection {
     
-}
+}*/
 
 class ReThinkPage extends Page {
     private userid: string;
@@ -106,6 +107,9 @@ class ReThinkPage extends Page {
     async exists() : Promise<boolean> {
 	// yes, I really did this.
 	// no, I am not ashamed of it.
+	/*r.db(this.db).table(this.userid).get(this.pageid).run(this.working_connection, (err, result) => {
+	    if (err) 
+	    })*/
 	return true;
     }
 
