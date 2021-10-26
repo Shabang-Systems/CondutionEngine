@@ -13,7 +13,7 @@ class ReThinkPage extends Page {
     private userid: string;
     private pageid: string;
     private db: string;
-    private primaryking: string;
+    private primarykey: string;
     private path: string[];
     private working_connection;
     
