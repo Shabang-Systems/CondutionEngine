@@ -15,7 +15,7 @@ class ReThinkPage extends Page {
     private pageid: string;
     private db: string;
     private primarykey: string;
-    private path: string[];
+    //private path: string[];
     private working_connection;
     
     private data: object; 
@@ -30,7 +30,7 @@ class ReThinkPage extends Page {
 
 	this.working_connection = connection
 	
-	this.path = path
+	//this.path = path
 	this.data = new Promise((res,rej) => {
 	    r.db(this.db).table(this.userid).get(this.primarykey).run(connection, (err, result) => {
 		if (err) 
@@ -106,7 +106,7 @@ class ReThinkPage extends Page {
 
     async exists() : Promise<boolean> {
 	// yes, I really did this.
-	// no, I am not ashamed of it.
+	// yes, I am ashamed of it.
 	/*r.db(this.db).table(this.userid).get(this.pageid).run(this.working_connection, (err, result) => {
 	    if (err) 
 	    })*/
