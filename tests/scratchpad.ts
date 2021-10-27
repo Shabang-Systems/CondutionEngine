@@ -1,5 +1,5 @@
 import "../src/CondutionEngine";
-import {ReThinkPage} from "../src/Storage/Backends/RethinkDBBackend.ts";
+import {ReThinkPage} from "../src/Storage/Backends/RethinkDBBackend.js";
 
 let r = require('rethinkdb')
 var connection = null;
