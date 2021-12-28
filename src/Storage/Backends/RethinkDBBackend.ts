@@ -5,17 +5,18 @@ import type { DataExchangeResult } from "./Backend"
 let r = require('rethinkdb')
 let callbacks:Function[] = [];
 
-class RethinkCollection extends Collection {
+// class RethinkCollection extends Collection {
     
-}
+// }
 
 class ReThinkPage extends Page {
     private userid: string;
     private pageid: string;
     private db: string;
     private working_connection;
-    
     private data: object; 
+    private primarykey: any;
+    private path: string[];
     
     constructor(path:string[], connection, refreshCallback?:Function) {
 	super();
@@ -29,13 +30,27 @@ class ReThinkPage extends Page {
 	
 	this.path = path
 	this.data = new Promise((res,rej) => {
+	    r.db(this.db).tableList().run(connection, (_, result) => {
+		// @zach Am I going craazy? Please look at line above :point_up:
+		if (!(result.includes(this.userid))) {
+		    r.db(this.db).tableCreate(this.userid).run(connection);
+		}
+		// console.log(result);
+	    }); // a
 	    r.db(this.db).table(this.userid).get(this.primarykey).run(connection, (err, result) => {
-		if (err) 
-		    rej(err);
-		res(Object.assign(result[this.pageid], {id: this.pageid}));
+		if (!result) {
+		    r.db(this.db).table(this.userid).insert({}).run(connection, (err, result) => {
+			console.log(result);
+		    });
+		}
+		// if (err) 
+		//     rej(err);
+		if (result && result.hasOwnProperty(this.pageid))
+		    res(Object.assign(result[this.pageid], {id: this.pageid}));
+		else
+		    res({id: this.pageid});
 	    });
-		
-	})
+	}); 
 
 	if (refreshCallback) {
 	    r.db(this.db).table(this.userid).changes().get(this.pageid).run(connection, (err, result) => {
@@ -103,7 +118,7 @@ class ReThinkPage extends Page {
 
     async exists() : Promise<boolean> {
 	// yes, I really did this.
-	// no, I am not ashamed of it.
+	// no, I am not ashamed of it. #HACK FIXME
 	return true;
     }
 
@@ -112,7 +127,7 @@ class ReThinkPage extends Page {
     }
 
     async get() : Promise<object> {
-	return await self.data;
+	return await this.data;
     }
 }
 
