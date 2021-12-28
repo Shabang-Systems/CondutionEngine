@@ -1,18 +1,22 @@
 import { Provider, Page, Collection } from "./Backend";
 import type { DataExchangeResult } from "./Backend"
+import { resolvePlugin } from "@babel/core";
 
 
 let r = require('rethinkdb')
 let callbacks:Function[] = [];
 
-// class RethinkCollection extends Collection {
+/*
+class RethinkCollection extends Collection {
     
-// }
+}*/
 
 class ReThinkPage extends Page {
     private userid: string;
     private pageid: string;
     private db: string;
+    private primarykey: string;
+    //private path: string[];
     private working_connection;
     private data: object; 
     private primarykey: any;
@@ -28,7 +32,7 @@ class ReThinkPage extends Page {
 
 	this.working_connection = connection
 	
-	this.path = path
+	//this.path = path
 	this.data = new Promise((res,rej) => {
 	    r.db(this.db).tableList().run(connection, (_, result) => {
 		// @zach Am I going craazy? Please look at line above :point_up:
@@ -78,7 +82,7 @@ class ReThinkPage extends Page {
 	    // r.
 	    let query = {};
 	    query[this.primarykey][this.pageid] = data;
-	    r.db(this.db).table(this.userid).update(query).run(connection, (err, result) => {
+	    r.db(this.db).table(this.userid).update(query).run(this.working_connection, (err, result) => {
 		res(result);
 	    });
 	});
@@ -97,7 +101,7 @@ class ReThinkPage extends Page {
 	    // r.
 	    let query = {};
 	    query[this.primarykey][this.pageid] = data;
-	    r.db(this.db).table(this.userid).update(query).run(connection, (err, result) => {
+	    r.db(this.db).table(this.userid).update(query).run(this.working_connection, (err, result) => {
 		res(result);
 	    });
 	});
@@ -109,7 +113,7 @@ class ReThinkPage extends Page {
 	let res = new Promise((res, _) => {
 	    r.db(this.db)
 		.table(this.userid).get(this.pageid)
-		.delete().run(connection, (err, result) => {
+		.delete().run(this.working_connection, (err, result) => {
 		res(result);
 	    });
 	});
@@ -118,8 +122,11 @@ class ReThinkPage extends Page {
 
     async exists() : Promise<boolean> {
 	// yes, I really did this.
-	// no, I am not ashamed of it. #HACK FIXME
-	return true;
+	// yes, I am ashamed of it.
+	/*r.db(this.db).table(this.userid).get(this.pageid).run(this.working_connection, (err, result) => {
+	    if (err) 
+	    })*/
+	return true; // ????? TODO??? No I didn't pull... I am smart.
     }
 
     get id() : string {
