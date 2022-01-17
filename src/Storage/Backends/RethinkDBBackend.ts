@@ -31,24 +31,22 @@ class ReThinkPage extends Page {
 	this.pageid = path[3]
 
 	this.working_connection = connection
-	
-	//this.path = path
+
+	this.path = path
 	this.data = new Promise((res,rej) => {
 	    r.db(this.db).tableList().run(connection, (_, result) => {
 		// @zach Am I going craazy? Please look at line above :point_up:
 		if (!(result.includes(this.userid))) {
 		    r.db(this.db).tableCreate(this.userid).run(connection);
 		}
-		// console.log(result);
 	    }); // a
-	    r.db(this.db).table(this.userid).get(this.primarykey).run(connection, (err, result) => {
+
+	    r.db(this.db).table(this.userid).get(this.pageid).run(connection, (err, result) => {
 		if (!result) {
 		    r.db(this.db).table(this.userid).insert({}).run(connection, (err, result) => {
-			console.log(result);
+			// result["generated_keys"][0];
 		    });
 		}
-		// if (err) 
-		//     rej(err);
 		if (result && result.hasOwnProperty(this.pageid))
 		    res(Object.assign(result[this.pageid], {id: this.pageid}));
 		else
@@ -56,15 +54,15 @@ class ReThinkPage extends Page {
 	    });
 	}); 
 
-	if (refreshCallback) {
-	    r.db(this.db).table(this.userid).changes().get(this.pageid).run(connection, (err, result) => {
-		if (!err)  {
-		    let r = Object.assign(result[this.pageid], {id: this.pageid, exists: true});
-		    refreshCallback(r);
-		    this.data = new Promise((res, _) => r)
-		}
-	    });
-	}
+	// if (refreshCallback) {
+	//     r.db(this.db).table(this.userid).changes().get(this.pageid).run(connection, (err, result) => {
+	// 	if (!err)  {
+	// 	    let r = Object.assign(result[this.pageid], {id: this.pageid, exists: true});
+	// 	    refreshCallback(r);
+	// 	    this.data = new Promise((res, _) => r)
+	// 	}
+	//     });
+	// }
 
     }
     
