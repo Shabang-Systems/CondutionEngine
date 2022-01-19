@@ -11,6 +11,105 @@ class RethinkCollection extends Collection {
     
 }*/
 
+class ReThinkCollection extends Collection {
+    path: string[];
+    private userid: string;
+    private db: string;
+    private primarykey: string;
+    private working_connection: any;
+
+    constructor(path:string[], connection:any, refreshCallback?:Function) {
+        super()
+        this.path = path;
+
+	this.db = path[0]
+	this.userid = path[1]
+	this.primarykey = path[2]
+
+	this.working_connection = connection
+
+	this.path = path
+
+	r.db(this.db).tableList().run(connection, (_, result) => {
+	    // @zach Am I going craazy? Please look at line above :point_up:
+	    if (!(result.includes(this.userid))) {
+		r.db(this.db).tableCreate(this.userid).run(connection);
+	    }
+	}); // a
+
+
+	if (refreshCallback) {
+	    r.db(this.db).table(this.userid).changes().filter({key: this.primarykey}).run(connection, (result:any) => {
+		refreshCallback(result);
+	    });
+	    // snapshots.push(ref.onSnapshot({
+	    //     error: console.trace,
+	    //     next: (snap:any) => {
+	    //         refreshCallback(snap.docs.map((page:any)=>{
+	    //             return Object.assign(page.data(), {id: page.id});
+	    //         }));
+	    //     }
+	    // }));
+	}
+
+        // cache.set(JSON.stringify(path), this);
+    }
+
+    async add(payload:object) {
+	let p:Promise<DataExchangeResult> = new Promise((res,rej) => r.db(this.db).table(this.userid).insert({id:this.pageid, key:this.primarykey}).run(this.working_connection, (_, result) => {res({
+	    identifier: result["generated_keys"][0],
+	    payload: payload,
+	    response: result
+	})}));
+
+	return await p;
+    }
+
+    async delete() {
+	let p:Promise<object> = new Promise((res,_) => r.db(this.db).table(this.userid).delete().run(this.working_connection, (_, resu:object) => res(resu)));
+
+        return {identifier: null, payload: null, response: await p}
+    }
+
+    /**
+     * Gets a page array from the database.
+     *
+     * @param   path - The valid path to the reference
+     * @returns {Page[]} - The result of calling `.get()` on the database reference
+     *
+     */
+
+    async pages() : Promise<Page[]> {
+	let p:Promise<ReThinkPage[]> = new Promise((res,_) => {
+	    r.db(this.db).table(this.userid).filter({key: this.primarykey}).run(this.working_connection, (rej, result:any) => {
+		result.toArray((_,resultli)=>res(resultli.map((page:object) => {
+		    return (new ReThinkPage([...this.path, page["id"]], this.working_connection));
+		})));
+	    });
+	});
+
+	return await p;
+    }
+
+    /**
+     * Gets a data snapshot from the database.
+     *
+     * @param   path    The valid path to the reference
+     * @returns  {object[]} The result of calling `.get()` on the database reference
+     *
+     */
+
+    async data() : Promise<object[]> {
+	let p:Promise<object[]> = new Promise((res,_) => {
+	    r.db(this.db).table(this.userid).filter({key: this.primarykey}).run(this.working_connection, (rej,result:any) => {
+		result.toArray((_,resultli)=>res(resultli));
+	    });
+	});
+
+	return await p;
+    }
+}
+
 class ReThinkPage extends Page {
     private userid: string;
     private pageid: string;
@@ -44,7 +143,7 @@ class ReThinkPage extends Page {
 	    r.db(this.db).table(this.userid).get(this.pageid).run(connection, (err, result) => {
 		if (!result) {
 		    r.db(this.db).table(this.userid).insert({id:this.pageid,
-							     key:this.primarykey}).run(connection, (_, res) => {
+							     key:this.primarykey}).run(connection, (_) => {
 								 res({id:this.pageid, key:this.primarykey});
 							     });
 		} else {
@@ -76,7 +175,7 @@ class ReThinkPage extends Page {
 
 	let res = new Promise((res, _) => {
 	    // r.
-	    r.db(this.db).table(this.userid).replace(Object.assign(data, {id: this.pageid})).run(this.working_connection, (err, result) => {
+	    r.db(this.db).table(this.userid).replace(Object.assign(data, {id: this.pageid, key:this.primarykey})).run(this.working_connection, (err, result) => {
 		res(result);
 	    });
 	});
@@ -130,4 +229,4 @@ class ReThinkPage extends Page {
     }
 }
 
-export { ReThinkPage }
+export { ReThinkPage, ReThinkCollection }
