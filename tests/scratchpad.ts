@@ -9,10 +9,10 @@ import { Task, Project, Perspective } from "../src/CondutionEngine.ts"
 ReThinkProvider.create("localhost", 28015, "admin", "").then((p:ReThinkProvider) => {
     let m = new ReferenceManager([p]);
 
-    let context = new Context(m, "testuserid");
+    let context = new Context(m, "admin");
     context.start();
 
-    Task.create(context, "hewoo").then((t:any) => console.log(t));
+    Task.create(context, "hewoo").then((t:any) => t.name = "hewo");
 });
 
 
