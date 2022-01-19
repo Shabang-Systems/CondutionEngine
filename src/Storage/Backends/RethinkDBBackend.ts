@@ -28,7 +28,7 @@ class ReThinkPage extends Page {
 	this.db = path[0]
 	this.userid = path[1]
 	this.primarykey = path[2]
-	this.pageid = path[3]
+	this.pageid = path[path.length-1]
 
 	this.working_connection = connection
 
@@ -43,27 +43,25 @@ class ReThinkPage extends Page {
 
 	    r.db(this.db).table(this.userid).get(this.pageid).run(connection, (err, result) => {
 		if (!result) {
-		    r.db(this.db).table(this.userid).insert({}).run(connection, (err, result) => {
-			// result["generated_keys"][0];
-		    });
+		    r.db(this.db).table(this.userid).insert({id:this.pageid,
+							     key:this.primarykey}).run(connection, (_, res) => {
+								 res({id:this.pageid, key:this.primarykey});
+							     });
+		} else {
+		    res(result);
 		}
-		if (result && result.hasOwnProperty(this.pageid))
-		    res(Object.assign(result[this.pageid], {id: this.pageid}));
-		else
-		    res({id: this.pageid});
 	    });
 	}); 
 
-	// if (refreshCallback) {
-	//     r.db(this.db).table(this.userid).changes().get(this.pageid).run(connection, (err, result) => {
-	// 	if (!err)  {
-	// 	    let r = Object.assign(result[this.pageid], {id: this.pageid, exists: true});
-	// 	    refreshCallback(r);
-	// 	    this.data = new Promise((res, _) => r)
-	// 	}
-	//     });
-	// }
-
+	if (refreshCallback) {
+	    r.db(this.db).table(this.userid).changes().get(this.pageid).run(connection, (err, result) => {
+		if (!err)  {
+		    let r = result;
+		    refreshCallback(r);
+		    this.data = new Promise((res, _) => r)
+		}
+	    });
+	}
     }
     
     async set(payload:object, ...param:any) : Promise<DataExchangeResult>{
@@ -78,9 +76,7 @@ class ReThinkPage extends Page {
 
 	let res = new Promise((res, _) => {
 	    // r.
-	    let query = {};
-	    query[this.primarykey][this.pageid] = data;
-	    r.db(this.db).table(this.userid).update(query).run(this.working_connection, (err, result) => {
+	    r.db(this.db).table(this.userid).replace(Object.assign(data, {id: this.pageid})).run(this.working_connection, (err, result) => {
 		res(result);
 	    });
 	});
@@ -97,9 +93,7 @@ class ReThinkPage extends Page {
 
 	let res = new Promise((res, _) => {
 	    // r.
-	    let query = {};
-	    query[this.primarykey][this.pageid] = data;
-	    r.db(this.db).table(this.userid).update(query).run(this.working_connection, (err, result) => {
+	    r.db(this.db).table(this.userid).update(Object.assign(data, {id: this.pageid})).run(this.working_connection, (err, result) => {
 		res(result);
 	    });
 	});
