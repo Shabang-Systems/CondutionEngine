@@ -11,7 +11,7 @@ r.connect( {host: 'localhost',
     connection = conn;
 
     try {
-	let col = new ReThinkCollection(["users", "testuserid", "projects"], connection);
+	let col = new ReThinkCollection(["users", "testuserid", "tasks"], connection);
 	// col.pages().then(e=>console.log(e[0]));
 	// page.update({"name": "howo"});
     } catch {

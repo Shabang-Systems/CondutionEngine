@@ -11,6 +11,69 @@ class RethinkCollection extends Collection {
     
 }*/
 
+class ReThinkProvider extends Provider {
+    name: string;
+    private connection: any;
+
+    constructor(connection, name:string="rethink") {
+        super();
+
+	this.connection = connection;
+	this.name = connection;
+	// RETHIK DB BACKENDS ARE NEVER MEANT TO BE CREATED THIS WAY. YOU ARE BAD. Call async ReThinkProvider.create() instead.
+    }
+
+    static async create(host:string, port:number, username:string, password:string, name:string="rethink") {
+	let connection = new Promise((res, _) =>
+	    r.connect( {host: host,
+			port: port,
+			username: username,
+			password: password}, function(_, conn:any) {res(conn) }));
+
+	return new ReThinkProvider(await connection, name);
+    }
+
+    /**
+     * Gets a Page to operate on
+     *
+     * @param {string[]} path: path that you desire to get a reference to
+     * @param {Function} refreshCallback: the callback to update when data gets refreshed
+     * @returns {Page}: the page ye wished for
+     *
+     */
+
+    page(path: string[], refreshCallback?:Function) : ReThinkPage {
+        return new ReThinkPage(path, this.connection, refreshCallback);
+    }
+
+    /**
+     * Gets a collection
+     * get a list of pages, and some other stuff
+     * to operate on
+     *
+     * @param {string[]} path: path that you desire to get a reference to
+     * @param {Function} refreshCallback: the callback to update when data gets refreshed
+     * @returns {FirebaseCollection}: the collection ye wished for
+     *
+     */
+
+    collection(path: string[], refreshCallback?:Function) : ReThinkCollection {
+        return new ReThinkCollection(path, this.connection, refreshCallback);
+    }
+
+   
+    /**
+     * Nuke the cache
+     * 
+     * Used for logging out and general cleanup
+     *
+     */
+
+    flush() {
+	// do nothing
+    }
+}
+
 class ReThinkCollection extends Collection {
     path: string[];
     private userid: string;
@@ -42,17 +105,7 @@ class ReThinkCollection extends Collection {
 	    r.db(this.db).table(this.userid).changes().filter({key: this.primarykey}).run(connection, (result:any) => {
 		refreshCallback(result);
 	    });
-	    // snapshots.push(ref.onSnapshot({
-	    //     error: console.trace,
-	    //     next: (snap:any) => {
-	    //         refreshCallback(snap.docs.map((page:any)=>{
-	    //             return Object.assign(page.data(), {id: page.id});
-	    //         }));
-	    //     }
-	    // }));
 	}
-
-        // cache.set(JSON.stringify(path), this);
     }
 
     async add(payload:object) {
