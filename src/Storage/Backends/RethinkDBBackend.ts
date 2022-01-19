@@ -109,7 +109,7 @@ class ReThinkCollection extends Collection {
     }
 
     async add(payload:object) {
-	let p:Promise<DataExchangeResult> = new Promise((res,rej) => r.db(this.db).table(this.userid).insert({id:this.pageid, key:this.primarykey}).run(this.working_connection, (_, result) => {res({
+	let p:Promise<DataExchangeResult> = new Promise((res,rej) => r.db(this.db).table(this.userid).insert({key:this.primarykey}).run(this.working_connection, (_, result) => {res({
 	    identifier: result["generated_keys"][0],
 	    payload: payload,
 	    response: result
@@ -282,4 +282,4 @@ class ReThinkPage extends Page {
     }
 }
 
-export { ReThinkPage, ReThinkCollection }
+export { ReThinkPage, ReThinkCollection, ReThinkProvider }
